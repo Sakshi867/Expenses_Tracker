@@ -4,7 +4,18 @@ import re
 import plotly.express as px
 from datetime import datetime
 
-st.set_page_config(page_title="SMS Expense Tracker", layout="wide")
+# ✅ Set app to mobile-friendly layout
+st.set_page_config(page_title="SMS Expense Tracker", layout="wide", initial_sidebar_state="collapsed")
+
+# ✅ Hide Streamlit header, menu, and footer
+hide_st_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # ---------- Load Data ----------
 @st.cache_data
@@ -34,7 +45,7 @@ def convert_df(df):
 
 # ---------- Main App ----------
 def app():
-    st.title("📊 SMS Expense Tracker")
+    st.markdown("<h2 style='text-align: center;'>💸 SMS Expense Tracker</h2>", unsafe_allow_html=True)
     st.markdown("Analyze your spending by filtering uploaded expenses.")
 
     df = data.copy()
@@ -85,9 +96,9 @@ def app():
         st.line_chart(time_series)
 
         st.subheader("Transactions")
-        st.dataframe(filtered)
+        st.dataframe(filtered, use_container_width=True)
 
-        st.download_button("Download Filtered CSV", convert_df(filtered), "filtered_expenses.csv", "text/csv")
+        st.download_button("Download Filtered CSV", convert_df(filtered), "filtered_expenses.csv", "text/csv", use_container_width=True)
     else:
         st.warning("No records match your filters.")
 
