@@ -9,7 +9,7 @@ st.set_page_config(page_title="SMS Expense Tracker", layout="wide")
 # ---------- Load Data ----------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(r"C:\Users\Saksh\OneDrive\Desktop\Mini project\SBAK\Modified_Expenses_with_Login.csv")
+    df = pd.read_csv(r"Modified_Expenses_with_Login.csv")
     df.columns = df.columns.str.strip().str.lower()
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
     return df
