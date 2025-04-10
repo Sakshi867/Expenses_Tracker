@@ -5,7 +5,7 @@ import plotly.express as px
 from datetime import datetime
 
 # ✅ Set app to mobile-friendly layout
-st.set_page_config(page_title="SMS Expense Tracker", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Expense Tracker", layout="wide", initial_sidebar_state="collapsed")
 
 # ✅ Hide Streamlit header, menu, and footer
 hide_st_style = """
