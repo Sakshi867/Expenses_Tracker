@@ -1,54 +1,88 @@
 import streamlit as st
 import pandas as pd
-import re
 import plotly.express as px
 from datetime import datetime
 
-# ✅ Set app to mobile-friendly layout
-st.set_page_config(page_title="Expense Tracker", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="SMS Expense Tracker", layout="wide")
 
-# ✅ Hide Streamlit header, menu, and footer
-hide_st_style = """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    </style>
-"""
-st.markdown(hide_st_style, unsafe_allow_html=True)
+CSV_PATH = r"s1.csv"
 
 # ---------- Load Data ----------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(r"Modified_Expenses_with_Login.csv")
+    df = pd.read_csv(CSV_PATH)
     df.columns = df.columns.str.strip().str.lower()
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
     return df
 
-data = load_data()
-user_creds = dict(zip(data['username'], data['password']))
+# ---------- Save Data ----------
+def save_data(df):
+    df.to_csv(CSV_PATH, index=False)
 
-# ---------- Login ----------
-def login():
-    st.sidebar.title("Login")
-    username = st.sidebar.text_input("Username")
-    password = st.sidebar.text_input("Password", type="password")
-    if user_creds.get(username) == password:
-        return True
-    elif username and password:
-        st.sidebar.error("Invalid credentials")
-    return False
+# ---------- Login & Sign Up ----------
+def authenticate():
+    st.sidebar.title("Account Access")
+    choice = st.sidebar.radio("Select", ["Login", "Sign Up"])
+
+    if choice == "Sign Up":
+        st.sidebar.subheader("Create New Account")
+        new_user = st.sidebar.text_input("New Username")
+        new_pass = st.sidebar.text_input("New Password", type="password")
+
+        if st.sidebar.button("Register"):
+            df = load_data()
+            if new_user in df['username'].values:
+                st.sidebar.error("Username already exists.")
+            else:
+                new_entry = {
+                    "username": new_user,
+                    "password": new_pass,
+                    "usertype": "user",
+                    "date": pd.NaT,
+                    "amount": 0
+                }
+                for col in df.columns:
+                    if col not in new_entry:
+                        new_entry[col] = pd.NA
+                df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
+                save_data(df)
+                st.sidebar.success("Account created. Please log in.")
+                st.rerun()
+
+        return None, None
+
+    else:
+        st.sidebar.subheader("Login")
+        username = st.sidebar.text_input("Username")
+        password = st.sidebar.text_input("Password", type="password")
+
+        df = load_data()
+        creds = df.dropna(subset=['username', 'password'])[['username', 'password', 'usertype']].drop_duplicates()
+
+        match = creds[(creds['username'] == username) & (creds['password'] == password)]
+        if st.sidebar.button("Login"):
+            if not match.empty:
+                usertype = match.iloc[0]['usertype']
+                return username, usertype
+            else:
+                st.sidebar.error("Invalid credentials")
+
+    return None, None
 
 # ---------- Helper Functions ----------
 def convert_df(df):
     return df.to_csv(index=False).encode('utf-8')
 
 # ---------- Main App ----------
-def app():
-    st.markdown("<h2 style='text-align: center;'>💸 SMS Expense Tracker</h2>", unsafe_allow_html=True)
+def app(username, usertype):
+    st.title("📊 SMS Expense Tracker")
     st.markdown("Analyze your spending by filtering uploaded expenses.")
 
-    df = data.copy()
+    df = load_data()
+
+    # Filter data: users see only their entries, admin sees everything
+    if usertype != "admin":
+        df = df[df['paid by'].str.strip().str.lower() == username.lower()]
 
     # Sidebar filters
     st.sidebar.header("Filter Options")
@@ -96,12 +130,13 @@ def app():
         st.line_chart(time_series)
 
         st.subheader("Transactions")
-        st.dataframe(filtered, use_container_width=True)
+        st.dataframe(filtered)
 
-        st.download_button("Download Filtered CSV", convert_df(filtered), "filtered_expenses.csv", "text/csv", use_container_width=True)
+        st.download_button("Download Filtered CSV", convert_df(filtered), "filtered_expenses.csv", "text/csv")
     else:
         st.warning("No records match your filters.")
 
 # ---------- Run App ----------
-if login():
-    app()
+username, usertype = authenticate()
+if username:
+    app(username, usertype)
